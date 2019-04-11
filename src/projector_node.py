@@ -43,7 +43,7 @@ class ProjectorNode:
         #         np.ones([img_y_res, img_x_res], dtype=np.float32))
 
     def rgb_frame_cb(self, msg):
-        assert msg.encoding == 'rgb8'
+        assert msg.encoding == 'bgr8'
         img = np.frombuffer(msg.data, dtype=np.uint8).reshape([msg.height, msg.width, 3])
         if self.latest_depth is not None:
             done = self.p.draw_frame(img, self.latest_depth)
