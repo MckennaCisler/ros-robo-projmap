@@ -1,0 +1,12 @@
+<launch>
+
+    <!-- The kinect node to capture depth -->
+    <include file="$(find kinect2_bridge)/launch/kinect2_bridge.launch" />
+
+    <!-- The projector node which will receive RGB and depth and project -->
+    <node name="projector" pkg="ros_robo_projmap" type="projector_node.py" output="screen">
+        <remap from="/image" to="/kinect2/hd/image_color"/>
+        <remap from="/depth" to="/kinect2/hd/image_depth_rect"/>
+    </node>
+
+</launch>
