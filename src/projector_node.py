@@ -3,15 +3,16 @@ import rospy
 from std_msgs.msg import String, Float32MultiArray
 from sensor_msgs.msg import Image
 import numpy as np
+from rospy.numpy_msg import numpy_msg
 
 from ros_robo_projmap import Projector
-from cv_bridge import CvBridge, CvBridgeError
 from time import sleep
 
 class ProjectorNode:
     def __init__(self):
         self.sub_image = rospy.Subscriber("/image", Image, self.rgb_frame_cb)
         self.sub_depth = rospy.Subscriber("/depth", Image, self.depth_frame_cb)
+        self.camera_matrix = rospy.Subscriber("/camera_matrix", numpy_msg(Floats), self.camera_matrix_cb)
 
     def rgb_frame_cb(self, msg):
         assert msg.encoding == 'rgb8'
