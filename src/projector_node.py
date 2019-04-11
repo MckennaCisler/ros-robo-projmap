@@ -12,6 +12,7 @@ DEFAULT_IMG_X_RES =     1920
 DEFAULT_IMG_Y_RES =     1080
 DEFAULT_PROJ_X_RES =    1366
 DEFAULT_PROJ_Y_RES =    768
+DEFAULT_MONITOR =       1
 
 class ProjectorNode:
     def __init__(self):
@@ -27,20 +28,27 @@ class ProjectorNode:
             [0.0, 0.0,      0,  0.5]
         ], dtype=np.float32)
 
-        # TODO: take settings from launch file params
-        x_res = DEFAULT_IMG_X_RES
-        y_res = DEFAULT_IMG_Y_RES
-        proj_x = DEFAULT_PROJ_X_RES
-        proj_y = DEFAULT_PROJ_Y_RES
-        monitor = -1
+        # take settings from launch file params
+        img_x_res = rospy.get_param('~img_x_res', DEFAULT_IMG_X_RES)
+        img_y_res = rospy.get_param('~img_y_res', DEFAULT_IMG_Y_RES)
+        proj_x = rospy.get_param('~proj_x', DEFAULT_PROJ_X_RES)
+        proj_y = rospy.get_param('~proj_y', DEFAULT_PROJ_Y_RES)
+        monitor = rospy.get_param('~monitor', DEFAULT_MONITOR)
 
-        self.p = Projector(mvp, x_res=x_res, y_res=y_res, proj_x_res=proj_x, proj_y_res=proj_y, entire=True, monitor=monitor)
+        self.p = Projector(mvp, x_res=img_x_res, y_res=img_y_res, 
+            proj_x_res=proj_x, proj_y_res=proj_y, entire=True, monitor=monitor)
+
+        # self.p.draw_frame(
+        #         255*np.random.rand(img_y_res, img_x_res, 3), 
+        #         np.ones([img_y_res, img_x_res], dtype=np.float32))
 
     def rgb_frame_cb(self, msg):
         assert msg.encoding == 'rgb8'
         img = np.frombuffer(msg.data, dtype=np.uint8).reshape([msg.height, msg.width, 3])
         if self.latest_depth is not None:
-            self.p.draw_frame(img, self.latest_depth)
+            done = self.p.draw_frame(img, self.latest_depth)
+            if done:
+                rospy.signal_shutdown('Quit')
 
     def depth_frame_cb(self, msg):
         assert msg.encoding == '16UC1'
