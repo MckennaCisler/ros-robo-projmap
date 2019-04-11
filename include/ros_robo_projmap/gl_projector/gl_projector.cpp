@@ -306,19 +306,9 @@ static PyMethodDef Gl_ProjectorMethods[] = {
     {NULL, NULL, 0, NULL}        /* Sentinel */
 };
 
-
-static struct PyModuleDef gl_projectormodule = {
-    PyModuleDef_HEAD_INIT,
-    "gl_projector",   /* name of module */
-    "basic doc string", /* module documentation, may be NULL */
-    -1,       /* size of per-interpreter state of the module,
-                 or -1 if the module keeps state in global variables. */
-    Gl_ProjectorMethods
-};
-
-
-PyMODINIT_FUNC PyInit_gl_projector(void)
-{
-    import_array();
-    return PyModule_Create(&gl_projectormodule);
+extern "C" {
+    void initgl_projector(void) {
+        import_array();
+        Py_InitModule("gl_projector", Gl_ProjectorMethods);
+    }
 }

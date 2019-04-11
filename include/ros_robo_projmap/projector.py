@@ -4,7 +4,7 @@ import time
 import matplotlib.pyplot as plt
 
 class Projector():
-    def __init__(self, calibration_matrix, *, x_res, y_res, proj_x_res=1366, proj_y_res=768, entire=False, monitor=-1):
+    def __init__(self, calibration_matrix, x_res, y_res, proj_x_res=1366, proj_y_res=768, entire=False, monitor=-1):
         self.inds = np.indices([y_res, x_res], dtype=np.float32).transpose([1, 2, 0])[..., ::-1]
 
         A = np.array([
@@ -43,9 +43,8 @@ class Projector():
         ], -1)
         return gl_projector.draw_frame(coords.astype(np.float32))
 
-    def __del__(self):
+    def stop(self):
         gl_projector.stop()
-        pass
 
 
 if __name__ == '__main__':
