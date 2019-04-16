@@ -6,9 +6,10 @@ import numpy as np
 from rospy.numpy_msg import numpy_msg
 import matplotlib.pyplot as plt
 
-from ros_robo_projmap import Projector
+from ros_robo_projmap import Projector, calibration_read, calibration_write
 from time import sleep
 
+DEFAULT_CALIB_FILE =    "calib_matrix.json"
 DEFAULT_IMG_X_RES =     1920
 DEFAULT_IMG_Y_RES =     1080
 DEFAULT_PROJ_X_RES =    1366
@@ -29,12 +30,16 @@ class ProjectorNode:
         #     [0,  0,          0,  0],
         #     [0.0, 0.0,       0,  0.5]
         # ], dtype=np.float32)
-        self.mvp = np.array([
-            [-1.06876169e-05, -1.21751787e-07,  6.55230630e-03,  2.29022865e-01],
-            [-1.90532596e-07, -1.07657001e-05,  4.48697266e-03, -9.73388568e-01],
-            [-2.27919223e-10, -4.21394547e-10, -5.50405379e-06, -3.96796793e-04],
-            [0.0, 0.0, 0.0, 0.0]
-        ], dtype=np.float32)
+        # self.mvp = np.array([
+        #     [-1.06876169e-05, -1.21751787e-07,  6.55230630e-03,  2.29022865e-01],
+        #     [-1.90532596e-07, -1.07657001e-05,  4.48697266e-03, -9.73388568e-01],
+        #     [-2.27919223e-10, -4.21394547e-10, -5.50405379e-06, -3.96796793e-04],
+        #     [0.0, 0.0, 0.0, 0.0]
+        # ], dtype=np.float32)
+
+        # load calibration from file
+        self.calib_fname = rospy.get_param('~calib_file', DEFAULT_CALIB_FILE)
+        self.mvp = calibration_read(self.calib_fname)
 
         # take settings from launch file params
         self.img_x_res = rospy.get_param('~img_x_res', DEFAULT_IMG_X_RES)
@@ -55,18 +60,15 @@ class ProjectorNode:
         assert msg.encoding == 'bgr8'
         img = np.frombuffer(msg.data, dtype=np.uint8).reshape([msg.height, msg.width, 3])
         if self.latest_depth is not None:
-            done = self.p.draw_frame(img, self.latest_depth) # self.d) #
-            print("drawing RGB")
-            if False:
+            done = self.p.draw_frame(img, self.latest_depth)
+            print("projecting image")
+            if done:
                 rospy.signal_shutdown('Quit')
 
     def depth_frame_cb(self, msg):
         assert msg.encoding == '16UC1'
         self.latest_depth = np.frombuffer(msg.data, dtype=np.uint16).reshape([msg.height, msg.width])
         print("got depth frame")
-        # depth = np.copy(depth).astype(np.float32)
-        # depth[depth == 0] = 1 #np.inf
-        # self.latest_depth = depth
 
 if __name__ == '__main__':
     rospy.init_node('projector', anonymous=False)
