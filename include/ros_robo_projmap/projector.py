@@ -31,6 +31,7 @@ class Projector():
             M = calibration_matrix
 
         M /= M[3, 3]
+        print(M)
         self.calibration_matrix = np.ascontiguousarray(M.astype(np.float32))
         gl_projector.start(self.calibration_matrix, x_res, y_res, proj_x_res, proj_y_res, monitor)
 
