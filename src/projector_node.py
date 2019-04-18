@@ -63,6 +63,7 @@ class ProjectorNode:
             # print("projecting image")
 
             img = np.frombuffer(msg.data, dtype=np.uint8).reshape([msg.height, msg.width, 3])
+            img = img[..., ::-1]
             done = self.p.draw_frame(img, self.latest_depth)
             
             if done:
