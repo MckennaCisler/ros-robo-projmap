@@ -22,17 +22,23 @@ using namespace glm;
 #define MAX_INPUT_WIDTH     1920
 #define MAX_INPUT_HEIGHT    1080
 #define MAX_INPUT_RES       MAX_INPUT_WIDTH*MAX_INPUT_HEIGHT
-#define XYDC_MAX_SIZE       6*MAX_INPUT_RES
-#define INDICES_MAX_SIZE    3*2*(MAX_INPUT_WIDTH - 1)*(MAX_INPUT_HEIGHT - 1)
+#define MAX_XY_SIZE         2*MAX_INPUT_RES
+#define MAX_D_SIZE          MAX_INPUT_RES
+#define MAX_RGB_SIZE        3*MAX_INPUT_RES
+#define MAX_INDICES_SIZE    3*2*(MAX_INPUT_WIDTH - 1)*(MAX_INPUT_HEIGHT - 1)
 
 GLFWwindow* window;
-GLuint VertexArrayID;
-GLuint vertexbuffer;
 GLuint programID;
 GLint MatrixID;
 glm::mat4 MVP;
+GLuint attrArrayIDs[3];
+
+GLuint vertexbuffer;
+GLuint depthbuffer;
+GLuint rgbbuffer;
 GLuint indexbuffer;
-static unsigned int g_indices_data[INDICES_MAX_SIZE];
+
+static unsigned int g_indices_data[MAX_INDICES_SIZE];
 
 void generate_indices(int width, int height, unsigned int indices[]);
 
@@ -40,16 +46,18 @@ void generate_indices(int width, int height, unsigned int indices[]);
 char const *vertexShaderSource = 
     "#version 330 core\n"
     // Input vertex data, different for all executions of this shader.
-    "layout(location = 0) in vec3 vertexPosition_modelspace;\n"
+    "layout(location = 0) in vec2 vertexPosition_modelspace;\n"
+    // Depth corresponding to vertex data
+    "layout(location = 1) in float depth;\n"
     // Input color data (per vertex), passed straight through to the fragment shader
-    "layout(location = 1) in vec3 colorIn;\n"
+    "layout(location = 2) in vec3 colorIn;\n"
     "out vec3 colorOut;\n"
     // Values that stay constant for the whole mesh.
     "uniform mat4 MVP;\n"
     "void main() {\n"
         "colorOut = colorIn;\n"
         // Output position of the vertex, in clip space : MVP * position
-        "gl_Position =  MVP * vec4(vertexPosition_modelspace,1);\n"
+        "gl_Position =  MVP * vec4(vertexPosition_modelspace * depth, depth, 1);\n"
     "}";
 
 char const *fragmentShaderSource = 
@@ -148,9 +156,13 @@ PyObject *start(PyObject *self, PyObject *args) {
     // Light background
     glClearColor(0.8f, 0.8f, 0.9f, 0.0f);
 
-    // Setup vertex arrays
-    glGenVertexArrays(1, &VertexArrayID);
-    glBindVertexArray(VertexArrayID);
+    // Setup vertex arrays and associated buffers
+    glGenVertexArrays(3, attrArrayIDs);
+    glBindVertexArray(attrArrayIDs[0]);
+    glGenBuffers(3, attrArrayIDs);
+    vertexbuffer =  attrArrayIDs[0];
+    depthbuffer =   attrArrayIDs[1];
+    rgbbuffer =     attrArrayIDs[2];
 
     // Create and compile our GLSL program from the shaders
     programID = LoadShaders(vertexShaderSource, fragmentShaderSource);
@@ -158,10 +170,17 @@ PyObject *start(PyObject *self, PyObject *args) {
     // Get a handle for our "MVP" uniform
     MatrixID = glGetUniformLocation(programID, "MVP");
 
-    // Generate a buffer for the vertices (XYD points)
-    glGenBuffers(1, &vertexbuffer);
+    // buffer for the vertices (XY)
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-    glBufferData(GL_ARRAY_BUFFER, XYDC_MAX_SIZE * sizeof(int), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, MAX_XY_SIZE * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
+    
+    // buffer for depth vals
+    glBindBuffer(GL_ARRAY_BUFFER, depthbuffer);
+    glBufferData(GL_ARRAY_BUFFER, MAX_D_SIZE * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
+
+    // buffer for colors (RGB)
+    glBindBuffer(GL_ARRAY_BUFFER, rgbbuffer);
+    glBufferData(GL_ARRAY_BUFFER, MAX_RGB_SIZE * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
 
     // Populate the indices array
     generate_indices(input_width, input_height, g_indices_data);
@@ -169,7 +188,7 @@ PyObject *start(PyObject *self, PyObject *args) {
     // Generate a buffer for the indices of the triangle points
     glGenBuffers(1, &indexbuffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexbuffer);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, INDICES_MAX_SIZE * sizeof(int), g_indices_data, GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_INDICES_SIZE * sizeof(int), g_indices_data, GL_STATIC_DRAW);
     
     Py_RETURN_TRUE;
 }
@@ -199,34 +218,35 @@ void generate_indices(int width, int height, unsigned int indices[]) {
 int check_for_exit();
 
 /**
- * Takes in (np.ndarray xydc).
- * xydc should contain N words of 6 values: (x*d, y*d, d, r, g, b)
+ * Takes in (np.ndarray xy, np.ndarray d, np.ndarray rgb).
+ * with N words of (x, y), (d), (r, g, b), respectively
  * where N is the number of pixels, x, y are the pixel locations.
  * Returns true when the window was closed or None on error.
  */
 PyObject *draw_frame(PyObject *self, PyObject *args) {
     // read args
-    PyObject *arg_xydc = NULL;
-    PyObject *arr_xydc = NULL;
+    PyObject *arg_xy = NULL; PyObject *arg_d = NULL; PyObject *arg_rgb = NULL;
+    PyObject *arr_xy = NULL; PyObject *arr_d = NULL; PyObject *arr_rgb = NULL;
 
-    if (!PyArg_ParseTuple(args, "O", &arg_xydc)) {
+    if (!PyArg_ParseTuple(args, "OOO", &arg_xy, &arg_d, &arg_rgb)) {
         Py_RETURN_NONE;
     }
 
-    arr_xydc = PyArray_FROM_OTF(arg_xydc, NPY_FLOAT32, NPY_ARRAY_IN_ARRAY);
+    arr_xy =    PyArray_FROM_OTF(arg_xy, NPY_FLOAT32, NPY_ARRAY_IN_ARRAY);
+    arr_d =     PyArray_FROM_OTF(arg_d, NPY_FLOAT32, NPY_ARRAY_IN_ARRAY);
+    arr_rgb =   PyArray_FROM_OTF(arg_rgb, NPY_FLOAT32, NPY_ARRAY_IN_ARRAY);
 
-    int xydc_size = PyArray_Size(arr_xydc);
-    if (xydc_size > XYDC_MAX_SIZE) {
+    int xy_size =   PyArray_Size(arr_xy);
+    int d_size =    PyArray_Size(arr_d);
+    int rgb_size =  PyArray_Size(arr_rgb);
+    if (xy_size > MAX_XY_SIZE || d_size > MAX_D_SIZE || rgb_size > MAX_RGB_SIZE) {
             fprintf(stderr, "Invalid input sizes to draw_frame\n");
             Py_RETURN_NONE;
     }
 
-    GLfloat *xydc_data = (GLfloat*) PyArray_DATA(arr_xydc);
-
-    // update data in buffers (reallocate the buffer objects beforehand for speed)
-    // (see https://www.khronos.org/opengl/wiki/Buffer_Object_Streaming#Buffer_re-specification)
-    glBufferData(GL_ARRAY_BUFFER, XYDC_MAX_SIZE * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, xydc_size * sizeof(GLfloat), xydc_data);
+    GLfloat *xy_data =  (GLfloat*) PyArray_DATA(arr_xy);
+    GLfloat *d_data =   (GLfloat*) PyArray_DATA(arr_d);
+    GLfloat *rgb_data = (GLfloat*) PyArray_DATA(arr_rgb);
 
     // reset color
     glClear(GL_COLOR_BUFFER_BIT);
@@ -235,44 +255,72 @@ PyObject *draw_frame(PyObject *self, PyObject *args) {
     glUseProgram(programID);
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 
-    // connect the xyz in first part of the buffer to the shader attribute
+    /* populate xy buffer and assign to attribute */
+    // switch current GL_ARRAY_BUFFER binding to the correct array
+    glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
+    // update data in buffers (reallocate the buffer objects beforehand for speed)
+    // (see https://www.khronos.org/opengl/wiki/Buffer_Object_Streaming#Buffer_re-specification)
+    glBufferData(GL_ARRAY_BUFFER, MAX_XY_SIZE * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, xy_size * sizeof(GLfloat), xy_data);
+    // connect to shader attribute index
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(
             0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-            3,                  // size (3-space)
+            2,                  // size
             GL_FLOAT,           // type
             GL_FALSE,           // normalized?
-            6*sizeof(GLfloat),  // stride
+            2*sizeof(GLfloat),  // stride
             (void*)0            // array buffer offset
     );
 
-    // connect the color to the input color attribute of the vertex shader
+    /* populate d buffer and assign to attribute */
+    glBindBuffer(GL_ARRAY_BUFFER, depthbuffer);
+    glBufferData(GL_ARRAY_BUFFER, MAX_D_SIZE * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, d_size * sizeof(GLfloat), d_data);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(
             1,
+            1,                                      // size (single)
+            GL_FLOAT,
+            GL_FALSE,                               // normalized?
+            sizeof(GLfloat),                        // stride
+            (void*)0
+    );
+
+    /* populate rgb buffer and assign to attribute */
+    glBindBuffer(GL_ARRAY_BUFFER, rgbbuffer);
+    glBufferData(GL_ARRAY_BUFFER, MAX_RGB_SIZE * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, rgb_size * sizeof(GLfloat), rgb_data);
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(
+            2,
             3,                                      // size (RGB)
             GL_FLOAT,
             GL_FALSE,                               // normalized?
-            6*sizeof(GLfloat),                      // stride
-            (const GLvoid*)(3 * sizeof(GLfloat))    // after xyd coordinates
+            3*sizeof(GLfloat),                      // stride
+            (void*)0
     );
 
     // Draw the triangles using the vertex indices in the indices data
+    glBindVertexArray(attrArrayIDs[0]);
     glDrawElements(
         GL_TRIANGLES,               // mode
-        INDICES_MAX_SIZE,           // count
+        MAX_INDICES_SIZE,           // count
         GL_UNSIGNED_INT,            // type
         (void*)0                    // element array buffer offset
     );
 
-    glDisableVertexAttribArray(0);
+    glDisableVertexAttribArray(2);
     glDisableVertexAttribArray(1);
+    glDisableVertexAttribArray(0);
 
     // Swap buffers
     glfwSwapBuffers(window);
 
     // decrement reference on arguments
-    Py_DECREF(arr_xydc); 
+    Py_DECREF(arr_xy); 
+    Py_DECREF(arr_d); 
+    Py_DECREF(arr_rgb); 
 
     if (check_for_exit()) {
         Py_RETURN_TRUE;
