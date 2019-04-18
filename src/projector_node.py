@@ -7,7 +7,7 @@ from rospy.numpy_msg import numpy_msg
 import matplotlib.pyplot as plt
 
 from ros_robo_projmap import Projector, calibration_read, calibration_write
-from time import sleep
+import time
 
 DEFAULT_CALIB_FILE =    "one_matrix.json"
 DEFAULT_IMG_X_RES =     1920
@@ -58,18 +58,20 @@ class ProjectorNode:
             self.started = True
 
         assert msg.encoding == 'bgr8'
-        img = np.frombuffer(msg.data, dtype=np.uint8).reshape([msg.height, msg.width, 3])
 
         if self.latest_depth is not None:
+            # print("projecting image")
+
+            img = np.frombuffer(msg.data, dtype=np.uint8).reshape([msg.height, msg.width, 3])
             done = self.p.draw_frame(img, self.latest_depth)
-            print("projecting image")
+            
             if done:
                 rospy.signal_shutdown('Quit')
 
     def depth_frame_cb(self, msg):
         assert msg.encoding == '16UC1'
         self.latest_depth = np.frombuffer(msg.data, dtype=np.uint16).reshape([msg.height, msg.width])
-        print("got depth frame")
+        # print("got depth frame")
 
 if __name__ == '__main__':
     rospy.init_node('projector', anonymous=False)
