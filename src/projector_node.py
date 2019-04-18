@@ -59,6 +59,7 @@ class ProjectorNode:
 
         assert msg.encoding == 'bgr8'
         img = np.frombuffer(msg.data, dtype=np.uint8).reshape([msg.height, msg.width, 3])
+        img = img[..., ::-1]
 
         if self.latest_depth is not None:
             done = self.p.draw_frame(img, self.latest_depth)
