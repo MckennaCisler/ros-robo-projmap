@@ -9,7 +9,7 @@
         <remap from="/depth" to="/kinect2/hd/image_depth_rect"/>
 
         <param name="monitor" type="int" value="-1" />
-        <param name="calib_file" type="string" value="$(find ros_robo_projmap)/calib_matrix.json" />
+        <param name="calib_file" type="string" value="$(find ros_robo_projmap)/one_matrix.json" />
     </node>
 
 </launch>

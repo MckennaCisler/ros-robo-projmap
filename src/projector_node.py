@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from ros_robo_projmap import Projector, calibration_read, calibration_write
 from time import sleep
 
-DEFAULT_CALIB_FILE =    "calib_matrix.json"
+DEFAULT_CALIB_FILE =    "one_matrix.json"
 DEFAULT_IMG_X_RES =     1920
 DEFAULT_IMG_Y_RES =     1080
 DEFAULT_PROJ_X_RES =    1366
@@ -59,6 +59,7 @@ class ProjectorNode:
 
         assert msg.encoding == 'bgr8'
         img = np.frombuffer(msg.data, dtype=np.uint8).reshape([msg.height, msg.width, 3])
+
         if self.latest_depth is not None:
             done = self.p.draw_frame(img, self.latest_depth)
             print("projecting image")
