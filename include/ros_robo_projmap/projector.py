@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 
 class Projector():
     def __init__(self, calibration_matrix, x_res, y_res, proj_x_res=1366, proj_y_res=768, entire=False, monitor=-1):
-        self.inds = np.indices([y_res, x_res], dtype=np.float32).transpose([1, 2, 0])[..., ::-1]
+        inds = np.indices([y_res, x_res], dtype=np.float32).transpose([1, 2, 0])[..., ::-1]
 
         A = np.array([
             [1, 0, 0, 0],
@@ -34,7 +34,7 @@ class Projector():
         M /= M[3, 3]
         print(M)
         self.calibration_matrix = np.ascontiguousarray(M.astype(np.float32))
-        gl_projector.start(self.calibration_matrix, x_res, y_res, proj_x_res, proj_y_res, monitor)
+        gl_projector.start(self.calibration_matrix, inds, x_res, y_res, proj_x_res, proj_y_res, monitor)
 
     def draw_frame(self, rgb, depth):
         # depth = np.expand_dims(depth, -1)
@@ -50,7 +50,7 @@ class Projector():
         coords_time = time.time() - start
 
         start = time.time()
-        ret = gl_projector.draw_frame(self.inds, depth_f, rgb_norm)
+        ret = gl_projector.draw_frame(depth_f, rgb_norm)
         draw_time = time.time() - start
 
         print(coords_time, draw_time)

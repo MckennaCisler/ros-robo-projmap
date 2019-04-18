@@ -33,6 +33,7 @@ GLint MatrixID;
 glm::mat4 MVP;
 GLuint attrArrayIDs[3];
 
+PyObject *g_arr_xy;
 GLuint vertexbuffer;
 GLuint depthbuffer;
 GLuint rgbbuffer;
@@ -69,7 +70,8 @@ char const *fragmentShaderSource =
     "}";
 
 /**
- * Takes in (np.ndarray projector matrix, input_width, input_height, proj_width, proj_height, output monitor index).
+ * Takes in (np.ndarray projector matrix, np.ndarray pixel xy indices, 
+ *  input_width, input_height, proj_width, proj_height, output monitor index).
  * The projector matrix must be 4x4, and output monitor can be negative for windowed mode.
  * Returns True on success, False otherwise
  */
@@ -79,6 +81,7 @@ PyObject *start(PyObject *self, PyObject *args) {
 
     // read args
     PyObject *arg_mvp = NULL;
+    PyObject *arg_xy = NULL;
     PyObject *arr_mvp = NULL;
     int input_width;
     int input_height;
@@ -86,16 +89,22 @@ PyObject *start(PyObject *self, PyObject *args) {
     int proj_height;
     int monitor_index;
 
-    if (!PyArg_ParseTuple(args, "Oiiiii", &arg_mvp, 
+    if (!PyArg_ParseTuple(args, "OOiiiii", &arg_mvp, &arg_xy,
         &input_width, &input_height, &proj_width, &proj_height, &monitor_index)) {
         Py_RETURN_NONE;
     }
 
     arr_mvp = PyArray_FROM_OTF(arg_mvp, NPY_FLOAT32, NPY_ARRAY_IN_ARRAY);
+    g_arr_xy = PyArray_FROM_OTF(arg_xy, NPY_FLOAT32, NPY_ARRAY_IN_ARRAY);
 
-    int mvp_size = PyArray_Size(arr_mvp);
+    size_t mvp_size = PyArray_Size(arr_mvp);
+    size_t xy_size = PyArray_Size(g_arr_xy);
     if (mvp_size != 16) {
             fprintf(stderr, "Invalid size for MVP matrix\n");
+            Py_RETURN_NONE;
+    }
+    if (xy_size != (input_width * input_height * 2)) {
+            fprintf(stderr, "Invalid size for xy size\n");
             Py_RETURN_NONE;
     }
 
@@ -107,7 +116,7 @@ PyObject *start(PyObject *self, PyObject *args) {
         }
     }
     // decrement reference on arguments
-    Py_DECREF(arr_mvp); 
+    Py_DECREF(arr_mvp);
 
     // Initialise GLFW
     if( !glfwInit() ) {
@@ -170,15 +179,17 @@ PyObject *start(PyObject *self, PyObject *args) {
     // Get a handle for our "MVP" uniform
     MatrixID = glGetUniformLocation(programID, "MVP");
 
-    // buffer for the vertices (XY)
+    // create AND populate buffer for the vertices (XY)
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-    glBufferData(GL_ARRAY_BUFFER, MAX_XY_SIZE * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
+    GLfloat *g_xy_data =  (GLfloat*) PyArray_DATA(g_arr_xy);
+    glBufferData(GL_ARRAY_BUFFER, xy_size * sizeof(GLfloat), g_xy_data, GL_STATIC_DRAW);
+    // don't decref g_xy_data until close
     
-    // buffer for depth vals
+    // create buffer for depth vals
     glBindBuffer(GL_ARRAY_BUFFER, depthbuffer);
     glBufferData(GL_ARRAY_BUFFER, MAX_D_SIZE * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
 
-    // buffer for colors (RGB)
+    // create buffer for colors (RGB)
     glBindBuffer(GL_ARRAY_BUFFER, rgbbuffer);
     glBufferData(GL_ARRAY_BUFFER, MAX_RGB_SIZE * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
 
@@ -218,33 +229,30 @@ void generate_indices(int width, int height, unsigned int indices[]) {
 int check_for_exit();
 
 /**
- * Takes in (np.ndarray xy, np.ndarray d, np.ndarray rgb).
+ * Takes in (np.ndarray depth, np.ndarray rgb).
  * with N words of (x, y), (d), (r, g, b), respectively
  * where N is the number of pixels, x, y are the pixel locations.
  * Returns true when the window was closed or None on error.
  */
 PyObject *draw_frame(PyObject *self, PyObject *args) {
     // read args
-    PyObject *arg_xy = NULL; PyObject *arg_d = NULL; PyObject *arg_rgb = NULL;
-    PyObject *arr_xy = NULL; PyObject *arr_d = NULL; PyObject *arr_rgb = NULL;
+    PyObject *arg_d = NULL; PyObject *arg_rgb = NULL;
+    PyObject *arr_d = NULL; PyObject *arr_rgb = NULL;
 
-    if (!PyArg_ParseTuple(args, "OOO", &arg_xy, &arg_d, &arg_rgb)) {
+    if (!PyArg_ParseTuple(args, "OO", &arg_d, &arg_rgb)) {
         Py_RETURN_NONE;
     }
 
-    arr_xy =    PyArray_FROM_OTF(arg_xy, NPY_FLOAT32, NPY_ARRAY_IN_ARRAY);
     arr_d =     PyArray_FROM_OTF(arg_d, NPY_FLOAT32, NPY_ARRAY_IN_ARRAY);
     arr_rgb =   PyArray_FROM_OTF(arg_rgb, NPY_FLOAT32, NPY_ARRAY_IN_ARRAY);
 
-    int xy_size =   PyArray_Size(arr_xy);
     int d_size =    PyArray_Size(arr_d);
     int rgb_size =  PyArray_Size(arr_rgb);
-    if (xy_size > MAX_XY_SIZE || d_size > MAX_D_SIZE || rgb_size > MAX_RGB_SIZE) {
+    if (d_size > MAX_D_SIZE || rgb_size > MAX_RGB_SIZE) {
             fprintf(stderr, "Invalid input sizes to draw_frame\n");
             Py_RETURN_NONE;
     }
 
-    GLfloat *xy_data =  (GLfloat*) PyArray_DATA(arr_xy);
     GLfloat *d_data =   (GLfloat*) PyArray_DATA(arr_d);
     GLfloat *rgb_data = (GLfloat*) PyArray_DATA(arr_rgb);
 
@@ -255,14 +263,8 @@ PyObject *draw_frame(PyObject *self, PyObject *args) {
     glUseProgram(programID);
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
 
-    /* populate xy buffer and assign to attribute */
-    // switch current GL_ARRAY_BUFFER binding to the correct array
+    // simply enable the already-populated XY pixel location array
     glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-    // update data in buffers (reallocate the buffer objects beforehand for speed)
-    // (see https://www.khronos.org/opengl/wiki/Buffer_Object_Streaming#Buffer_re-specification)
-    glBufferData(GL_ARRAY_BUFFER, MAX_XY_SIZE * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, xy_size * sizeof(GLfloat), xy_data);
-    // connect to shader attribute index
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(
             0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
@@ -274,10 +276,14 @@ PyObject *draw_frame(PyObject *self, PyObject *args) {
     );
 
     /* populate d buffer and assign to attribute */
+    // switch current GL_ARRAY_BUFFER binding to the correct array
     glBindBuffer(GL_ARRAY_BUFFER, depthbuffer);
+    // update data in buffers (reallocate the buffer objects beforehand for speed)
+    // (see https://www.khronos.org/opengl/wiki/Buffer_Object_Streaming#Buffer_re-specification)
     glBufferData(GL_ARRAY_BUFFER, MAX_D_SIZE * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
     glBufferSubData(GL_ARRAY_BUFFER, 0, d_size * sizeof(GLfloat), d_data);
     glEnableVertexAttribArray(1);
+    // connect to shader attribute index
     glVertexAttribPointer(
             1,
             1,                                      // size (single)
@@ -318,7 +324,6 @@ PyObject *draw_frame(PyObject *self, PyObject *args) {
     glfwSwapBuffers(window);
 
     // decrement reference on arguments
-    Py_DECREF(arr_xy); 
     Py_DECREF(arr_d); 
     Py_DECREF(arr_rgb); 
 
@@ -343,6 +348,7 @@ int check_for_exit() {
  * Stops rendering
  */
 PyObject *stop(PyObject *self, PyObject *args) {
+    Py_DECREF(g_arr_xy);
     glfwTerminate();
 	Py_RETURN_NONE;
 }
