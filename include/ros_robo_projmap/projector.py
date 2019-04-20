@@ -37,23 +37,16 @@ class Projector():
         gl_projector.start(self.calibration_matrix, inds, x_res, y_res, proj_x_res, proj_y_res, monitor)
 
     def draw_frame(self, rgb, depth):
-        # depth = np.expand_dims(depth, -1)
-
-        start = time.time()
-        # coords = np.concatenate([
-        #     self.inds * depth,
-        #     depth,
-        #     rgb.astype(np.float32) / 255.0
-        # ], -1)
+        # start = time.time()
         depth_f = depth.astype(np.float32)
         rgb_norm = rgb.astype(np.float32) / 255.0
-        coords_time = time.time() - start
+        # coords_time = time.time() - start
 
-        start = time.time()
+        # start = time.time()
         ret = gl_projector.draw_frame(depth_f, rgb_norm)
-        draw_time = time.time() - start
+        # draw_time = time.time() - start
 
-        print(coords_time, draw_time)
+        # print(coords_time, draw_time)
 
         return ret
 
