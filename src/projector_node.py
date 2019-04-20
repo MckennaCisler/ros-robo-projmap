@@ -14,7 +14,7 @@ DEFAULT_IMG_X_RES =     1920
 DEFAULT_IMG_Y_RES =     1080
 DEFAULT_PROJ_X_RES =    1366
 DEFAULT_PROJ_Y_RES =    768
-DEFAULT_MONITOR =       1
+DEFAULT_MONITOR =       -1
 
 class ProjectorNode:
     def __init__(self):
@@ -61,11 +61,13 @@ class ProjectorNode:
 
         if self.latest_depth is not None:
             # print("projecting image")
+            # print(len(msg.data), msg.data)
 
-            img = np.frombuffer(msg.data, dtype=np.uint8).reshape([msg.height, msg.width, 3])
-            img = img[..., ::-1]
+            img = np.frombuffer(msg.data, dtype=np.uint8)
+            img = img.reshape([msg.height, msg.width, 3])
+            # img = img[..., ::-1]
             done = self.p.draw_frame(img, self.latest_depth)
-            
+
             if done:
                 rospy.signal_shutdown('Quit')
 
