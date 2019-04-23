@@ -14,11 +14,11 @@ DEFAULT_IMG_X_RES =     1920
 DEFAULT_IMG_Y_RES =     1080
 DEFAULT_PROJ_X_RES =    1366
 DEFAULT_PROJ_Y_RES =    768
-DEFAULT_MONITOR =       -1
+DEFAULT_MONITOR =       1
 
 class ProjectorNode:
     def __init__(self):
-        self.sub_image = rospy.Subscriber("/projector/image", Image, self.rgb_frame_cb) # /projector/image
+        self.sub_image = rospy.Subscriber("/projector/image", Image, self.rgb_frame_cb) # ~image
         self.sub_depth = rospy.Subscriber("/kinect2/hd/image_depth_rect", Image, self.depth_frame_cb) # /depth
         # self.camera_matrix = rospy.Subscriber("/camera_matrix", numpy_msg(Floats), self.camera_matrix_cb)
 

@@ -8,6 +8,8 @@ class ProjMapLib():
     def __init__(self, input_cb=None,
             input_topic="/kinect2/hd/image_color", output_topic="/projector/image"): # TODO: /input, /output
         self.input_topic = input_topic
+        if input_cb is not None:
+            self.sub = rospy.Subscriber(input_topic, Image, input_cb)
         self.pub_output = rospy.Publisher(output_topic, Image, queue_size=5) # /output
     
     def msg_to_image(self, msg):
@@ -19,4 +21,5 @@ class ProjMapLib():
         return self.msg_to_image(msg)
 
     def project_image(self, img):
-        self.pub_output.publish(CvBridge().cv2_to_imgmsg(img))
+        conv_image = CvBridge().cv2_to_imgmsg(img.astype(np.uint8), "bgr8")
+        self.pub_output.publish(conv_image)
