@@ -39,7 +39,7 @@ class Projector():
     def draw_frame(self, rgb, depth):
         # start = time.time()
         depth_f = depth.astype(np.float32)
-        depth_f[depth_f == 0] = 3500
+        depth_f[depth_f == 0] = np.inf
         rgb_norm = rgb.astype(np.float32) / 255.0
         # coords_time = time.time() - start
 
