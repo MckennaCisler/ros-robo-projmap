@@ -340,7 +340,7 @@ int check_for_exit() {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS && glfwWindowShouldClose(window) == 0) {
 		return 0;
 	} else {
-        return 1;
+        	return 1;
 	}
 }
 
