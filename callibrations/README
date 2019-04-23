@@ -1,0 +1,1 @@
+in order to use this callibration (which only works for the kinect with the id that is the folder name), copy it into catkin_ws/iai_kinect/kinect2_bridge/data
