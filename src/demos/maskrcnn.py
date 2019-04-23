@@ -10,7 +10,7 @@ from predictor import COCODemo
 
 class MaskRNN_Node:
     def __init__(self):
-        self.sub_image = rospy.Subscriber("/kinect2/hd/image_color", Image, self.rgb_frame_cb) # /image
+        self.sub_image = rospy.Subscriber("/kinect2/hd/image_color", Image, self.rgb_frame_cb) # /input
 
         self.config_file == \
             '~/robotics/robo-projmap/mask_rcnn_demo/maskrcnn-benchmark/configs/caffe2/e2e_mask_rcnn_R_50_FPN_1x_caffe2.yaml'
