@@ -103,7 +103,7 @@ PyObject *start(PyObject *self, PyObject *args) {
             fprintf(stderr, "Invalid size for MVP matrix\n");
             Py_RETURN_NONE;
     }
-    if (xy_size != (input_width * input_height * 2)) {
+    if ((int) xy_size != (input_width * input_height * 2)) {
             fprintf(stderr, "Invalid size for xy size\n");
             Py_RETURN_NONE;
     }
@@ -163,7 +163,7 @@ PyObject *start(PyObject *self, PyObject *args) {
     glfwSetInputMode(window, GLFW_STICKY_KEYS, GL_TRUE);
 
     // Light background
-    glClearColor(0.8f, 0.8f, 0.9f, 0.0f);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
 
     // Setup vertex arrays and associated buffers
     glGenVertexArrays(3, attrArrayIDs);
@@ -337,7 +337,7 @@ PyObject *draw_frame(PyObject *self, PyObject *args) {
 int check_for_exit() {
     // Check for exit keypresses
     glfwPollEvents();
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS && glfwWindowShouldClose(window) == 0) {
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS) {
 		return 0;
 	} else {
         return 1;
