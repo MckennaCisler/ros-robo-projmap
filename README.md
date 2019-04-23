@@ -9,6 +9,8 @@ A ROS package enabling AR without headsets: tool to represent a robot's internal
   - [libglfw3-dev](https://www.glfw.org/)
   - [libglew-dev](http://glew.sourceforge.net/)
   - [libglm-dev](https://glm.g-truc.net/0.9.9/index.html)
+- For demos
+  - [OpenCV](https://opencv.org/)
 
 # Install
 1) Clone this repo into your ROS package `src` directory and then run `catkin_make` 
