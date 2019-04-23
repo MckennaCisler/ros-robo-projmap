@@ -1,0 +1,3 @@
+The folders in this directory contain calibrations for Kinect2's using the iai_kinect library. These calibrations are for Kinect2 in the h2r lab at Brown.
+
+In order to use these calibrations (which only work for the kinect with the id that is the folder name), copy the relevant folder into catkin_ws/iai_kinect/kinect2_bridge/data
