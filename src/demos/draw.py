@@ -14,14 +14,15 @@ LINE_WIDTH =            5
 
 class ProjDrawNode:
     def __init__(self):
-        self.proj = ProjMapLib()
-
         self.x_res = rospy.get_param('~img_x_res', DEFAULT_IMG_X_RES)
         self.y_res = rospy.get_param('~img_y_res', DEFAULT_IMG_Y_RES)
 
+        self.proj = ProjMapLib(input_cb=self.receive_image)
+        self.latest_img = np.zeros([self.y_res, self.x_res, 3])
+
         self.drawing = None
         self._reset_image()
-        
+
         self.last_endpoint = None # for drawing lines
         self.last_line_draw = time.time()
 
@@ -36,14 +37,15 @@ class ProjDrawNode:
         self.r = rospy.Rate(30) # fps
 
     def _reset_image(self):
-        self.drawing = np.zeros([self.y_res, self.x_res], dtype=np.float32)
+        self.drawing = np.zeros([self.y_res, self.x_res, 3], dtype=np.float32)
+
+    def receive_image(self, msg):
+        self.latest_img = self.proj.msg_to_image(msg)
 
     def spin(self):
         while not rospy.is_shutdown():
-            # img = self.proj.get_image()
-            img = np.zeros([self.y_res, self.x_res, 3])
-            self.draw_frame(img)
-            self.proj.project_image(self.drawing)
+            self.draw_frame(self.latest_img)
+            self.proj.project_image(255*self.drawing)
 
             self.r.sleep()
 
@@ -56,10 +58,10 @@ class ProjDrawNode:
 
         # restart line at start or after timeout
         since_last_draw = time.time() - self.last_line_draw
-        if self.last_endpoint is None or since_last_draw > 0.5:
+        if self.last_endpoint is None or since_last_draw > 1:
             self.last_endpoint = new_endpoint
 
-        cv2.line(self.drawing, self.last_endpoint, new_endpoint, 1.0, LINE_WIDTH)
+        cv2.line(self.drawing, self.last_endpoint, new_endpoint, (1.0, 1.0, 1.0), LINE_WIDTH)
 
         self.last_endpoint = new_endpoint
         self.last_line_draw = time.time()
@@ -67,8 +69,7 @@ class ProjDrawNode:
     def draw_frame(self, img):
         self.frame.delete('all')
 
-        draw_expanded = np.expand_dims(self.drawing, -1)
-        self.combined = draw_expanded * 255 + (1 - draw_expanded) * img
+        self.combined = self.drawing * 255 + (1 - self.drawing) * img
 
         # self.small_frame = cv2.resize(self.combined, (self.x_res, self.y_res)).astype(np.uint8)
 
