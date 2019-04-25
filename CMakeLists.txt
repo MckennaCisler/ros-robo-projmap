@@ -186,6 +186,12 @@ install(PROGRAMS
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
 
+# Didn't work...
+# reference: https://github.com/gt-ros-pkg/rcommander-core/blob/master/nodebox_qt/CMakeLists.txt
+# add_custom_target( make_libraries ALL
+#  COMMAND cd include/ros_robo_projmap/gl_projector && python2 setup.py install --install-purelib=. --install-platlib=.
+# )
+
 #############
 ## Testing ##
 #############

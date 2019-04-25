@@ -158,16 +158,8 @@ PyObject *start(PyObject *self, PyObject *args) {
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    // Open a window and create its OpenGL context
-    window = glfwCreateWindow(proj_width, proj_height, "Projector View", NULL, NULL);
-    if( window == NULL ) {
-        fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
-        glfwTerminate();
-        Py_RETURN_FALSE;
-    }
-    glfwMakeContextCurrent(window);
-
     // Set the window to be fullscreened in the given monitor
+    GLFWmonitor* monitor = NULL;
     if (monitor_index >= 0) {
         int count;
         GLFWmonitor** monitors = glfwGetMonitors(&count);
@@ -175,8 +167,17 @@ PyObject *start(PyObject *self, PyObject *args) {
             fprintf(stderr, "Not enough monitors (%d) to project to monitor at index %d\n", count, monitor_index);
             Py_RETURN_FALSE;
         }
-        glfwSetWindowMonitor(window, monitors[monitor_index], 0, 0, proj_width, proj_height, GLFW_DONT_CARE);
+        monitor = monitors[monitor_index];
     }
+
+    // Open a window and create its OpenGL context
+    window = glfwCreateWindow(proj_width, proj_height, "Projector View", monitor, NULL);
+    if( window == NULL ) {
+        fprintf( stderr, "Failed to open GLFW window. If you have an Intel GPU, they are not 3.3 compatible. Try the 2.1 version of the tutorials.\n" );
+        glfwTerminate();
+        Py_RETURN_FALSE;
+    }
+    glfwMakeContextCurrent(window);
 
     // Initialize GLEW
     glewExperimental = true;
