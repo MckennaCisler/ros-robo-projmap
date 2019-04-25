@@ -5,6 +5,6 @@
 
 #include <GLFW/glfw3.h>
 
-GLuint LoadShaders(const char * VertexSourceString,const char * FragmentSourceString);
+GLuint LoadShaders(const char * VertexSourceString,const char * FragmentSourceString, const char *goemetryShaderSource);
 
 #endif

@@ -13,12 +13,13 @@ using namespace std;
 #include <GL/glew.h>
 
 #include "shader.hpp"
-
-GLuint LoadShaders(const char * VertexSourceString,const char * FragmentSourceString) {
+GLuint LoadShaders(const char * VertexSourceString, const char * FragmentSourceString, const char *geometryShaderSource) {
 
 	// Create the shaders
 	GLuint VertexShaderID = glCreateShader(GL_VERTEX_SHADER);
 	GLuint FragmentShaderID = glCreateShader(GL_FRAGMENT_SHADER);
+	GLuint GeometryShaderID = glCreateShader(GL_GEOMETRY_SHADER);
+
 
 	GLint Result = GL_FALSE;
 	int InfoLogLength;
@@ -54,8 +55,28 @@ GLuint LoadShaders(const char * VertexSourceString,const char * FragmentSourceSt
 
 
 
+	// Compile Fragment Shader
+	glShaderSource(GeometryShaderID, 1, &geometryShaderSource , NULL);
+	glCompileShader(GeometryShaderID);
+
+	// Check Fragment Shader
+	glGetShaderiv(GeometryShaderID, GL_COMPILE_STATUS, &Result);
+	glGetShaderiv(GeometryShaderID, GL_INFO_LOG_LENGTH, &InfoLogLength);
+	if ( InfoLogLength > 0 ){
+		std::vector<char> GeometryShaderErrorMessage(InfoLogLength+1);
+		glGetShaderInfoLog(GeometryShaderID, InfoLogLength, NULL, &GeometryShaderErrorMessage[0]);
+		printf("%s\n", &GeometryShaderErrorMessage[0]);
+	}
+
+
+
+
+
+
+
 	// Link the program
 	GLuint ProgramID = glCreateProgram();
+	glAttachShader(ProgramID, GeometryShaderID);
 	glAttachShader(ProgramID, VertexShaderID);
 	glAttachShader(ProgramID, FragmentShaderID);
 	glLinkProgram(ProgramID);
@@ -69,14 +90,12 @@ GLuint LoadShaders(const char * VertexSourceString,const char * FragmentSourceSt
 		printf("%s\n", &ProgramErrorMessage[0]);
 	}
 
-	
+
 	glDetachShader(ProgramID, VertexShaderID);
 	glDetachShader(ProgramID, FragmentShaderID);
-	
+
 	glDeleteShader(VertexShaderID);
 	glDeleteShader(FragmentShaderID);
 
 	return ProgramID;
 }
-
-

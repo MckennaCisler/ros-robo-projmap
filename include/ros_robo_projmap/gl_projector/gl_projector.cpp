@@ -44,7 +44,7 @@ static unsigned int g_indices_data[MAX_INDICES_SIZE];
 void generate_indices(int width, int height, unsigned int indices[]);
 
 /** Shader source codes **/
-char const *vertexShaderSource = 
+char const *vertexShaderSource =
     "#version 330 core\n"
     // Input vertex data, different for all executions of this shader.
     "layout(location = 0) in vec2 vertexPosition_modelspace;\n"
@@ -61,16 +61,43 @@ char const *vertexShaderSource =
         "gl_Position =  MVP * vec4(vertexPosition_modelspace * depth, depth, 1);\n"
     "}";
 
-char const *fragmentShaderSource = 
+char const *fragmentShaderSource =
     "#version 330 core\n"
-    "in vec3 colorOut;\n" // color from vertex shader
+    "in vec3 colorFinal;\n" // color from vertex shader
     "out vec3 color;\n" // output color
     "void main() {\n"
-	    "color = colorOut;\n"
+	    "color = vec3(colorFinal[2], colorFinal[1], colorFinal[0]);\n"
     "}";
 
+char const *geometryShaderSource =
+"#version 430 core\n"
+"layout (triangles) in;\n"
+"layout (triangle_strip) out;\n"
+"layout (max_vertices = 3) out;\n"
+"in vec3 colorOut[];\n"
+"out vec3 colorFinal;\n"
+"void main(void)\n"
+"{\n"
+"float d1 = distance(gl_in[0].gl_Position, gl_in[1].gl_Position);\n"
+"float d2 = distance(gl_in[1].gl_Position, gl_in[2].gl_Position);\n"
+"float d3 = distance(gl_in[2].gl_Position, gl_in[0].gl_Position);\n"
+"float distance_max = max(max(d1, d2), d3);\n"
+"if (distance_max < 10) {\n"
+"    colorFinal = colorOut[0];\n"
+"    gl_Position = gl_in[0].gl_Position;\n"
+"    EmitVertex();\n"
+"    colorFinal = colorOut[0];\n"
+"    gl_Position = gl_in[1].gl_Position;\n"
+"    EmitVertex();\n"
+"    colorFinal = colorOut[0];\n"
+"    gl_Position = gl_in[2].gl_Position;\n"
+"    EmitVertex();\n"
+"}\n"
+"EndPrimitive();\n"
+"}";
+
 /**
- * Takes in (np.ndarray projector matrix, np.ndarray pixel xy indices, 
+ * Takes in (np.ndarray projector matrix, np.ndarray pixel xy indices,
  *  input_width, input_height, proj_width, proj_height, output monitor index).
  * The projector matrix must be 4x4, and output monitor can be negative for windowed mode.
  * Returns True on success, False otherwise
@@ -174,7 +201,7 @@ PyObject *start(PyObject *self, PyObject *args) {
     rgbbuffer =     attrArrayIDs[2];
 
     // Create and compile our GLSL program from the shaders
-    programID = LoadShaders(vertexShaderSource, fragmentShaderSource);
+    programID = LoadShaders(vertexShaderSource, fragmentShaderSource, geometryShaderSource);
 
     // Get a handle for our "MVP" uniform
     MatrixID = glGetUniformLocation(programID, "MVP");
@@ -184,7 +211,7 @@ PyObject *start(PyObject *self, PyObject *args) {
     GLfloat *g_xy_data =  (GLfloat*) PyArray_DATA(g_arr_xy);
     glBufferData(GL_ARRAY_BUFFER, xy_size * sizeof(GLfloat), g_xy_data, GL_STATIC_DRAW);
     // don't decref g_xy_data until close
-    
+
     // create buffer for depth vals
     glBindBuffer(GL_ARRAY_BUFFER, depthbuffer);
     glBufferData(GL_ARRAY_BUFFER, MAX_D_SIZE * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
@@ -200,7 +227,7 @@ PyObject *start(PyObject *self, PyObject *args) {
     glGenBuffers(1, &indexbuffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexbuffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, MAX_INDICES_SIZE * sizeof(int), g_indices_data, GL_STATIC_DRAW);
-    
+
     Py_RETURN_TRUE;
 }
 
@@ -324,8 +351,8 @@ PyObject *draw_frame(PyObject *self, PyObject *args) {
     glfwSwapBuffers(window);
 
     // decrement reference on arguments
-    Py_DECREF(arr_d); 
-    Py_DECREF(arr_rgb); 
+    Py_DECREF(arr_d);
+    Py_DECREF(arr_rgb);
 
     if (check_for_exit()) {
         Py_RETURN_TRUE;

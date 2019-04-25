@@ -27,7 +27,7 @@ class MaskRNN_Node:
         )
 
         self.sub_image = rospy.Subscriber("/kinect2/hd/image_color", Image, self.rgb_frame_cb) # /input
-        self.pub_composite = rospy.Publisher("/maskrnn_image", Image, queue_size=5)
+        self.pub_composite = rospy.Publisher("/projector/image", Image, queue_size=5)
 
 
 
