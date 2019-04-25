@@ -9,14 +9,7 @@ from scipy.ndimage import gaussian_filter
 import pickle
 
 
-DEFAULT_CALIB_FILE =    "one_matrix.json"
-DEFAULT_IMG_X_RES =     1920
-DEFAULT_IMG_Y_RES =     1080
-DEFAULT_PROJ_X_RES =    1366
-DEFAULT_PROJ_Y_RES =    768
-DEFAULT_MONITOR =       -1
-
-class ProjectorNode:
+class CalibrateNode:
     def __init__(self):
         self.latest_depth = None
         self.latest_rgb = None
@@ -124,5 +117,5 @@ class ProjectorNode:
 
 if __name__ == '__main__':
     rospy.init_node('projector', anonymous=False)
-    projector_node = ProjectorNode()
+    calib_node = CalibrateNode()
     rospy.spin()
