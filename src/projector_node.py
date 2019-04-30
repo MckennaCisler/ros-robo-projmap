@@ -29,8 +29,6 @@ class ProjectorNode:
         # take settings from launch file params
         self.img_x_res = rospy.get_param('~img_x_res', DEFAULT_IMG_X_RES)
         self.img_y_res = rospy.get_param('~img_y_res', DEFAULT_IMG_Y_RES)
-        self.flip_x = rospy.get_param('~flip_x', False)
-        self.flip_y = rospy.get_param('~flip_y', False)
         self.proj_x = rospy.get_param('~proj_x', DEFAULT_PROJ_X_RES)
         self.proj_y = rospy.get_param('~proj_y', DEFAULT_PROJ_Y_RES)
         self.monitor = rospy.get_param('~monitor', DEFAULT_MONITOR)
@@ -41,8 +39,7 @@ class ProjectorNode:
     def rgb_frame_cb(self, msg):
         if not self.started:
             self.p = Projector(self.mvp, x_res=self.img_x_res, y_res=self.img_y_res,
-                proj_x_res=self.proj_x, proj_y_res=self.proj_y, flip_x=self.flip_x, flip_y=self.flip_y,
-                entire=False, monitor=self.monitor)
+                proj_x_res=self.proj_x, proj_y_res=self.proj_y, entire=False, monitor=self.monitor)
             self.started = True
 
         assert msg.encoding == 'bgr8'
