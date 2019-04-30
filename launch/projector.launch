@@ -5,10 +5,9 @@
 
     <!-- The projector node which will receive RGB and depth and project -->
     <node name="projector" pkg="ros_robo_projmap" type="projector_node.py" output="screen">
-        <remap from="/image" to="/kinect2/hd/image_color"/>
-        <remap from="/depth" to="/kinect2/hd/image_depth_rect"/>
+        <remap from="/projector/depth" to="/kinect2/hd/image_depth_rect"/>
 
-        <param name="monitor" type="int" value="-1" />
+        <param name="monitor" type="int" value="1" />
         <param name="calib_file" type="string" value="$(find ros_robo_projmap)/calibrations/one_matrix.json" />
     </node>
 

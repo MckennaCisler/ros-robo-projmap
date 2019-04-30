@@ -58,7 +58,7 @@ class ProjDrawNode:
 
         # restart line at start or after timeout
         since_last_draw = time.time() - self.last_line_draw
-        if self.last_endpoint is None or since_last_draw > 1:
+        if self.last_endpoint is None or since_last_draw > 0.25:
             self.last_endpoint = new_endpoint
 
         cv2.line(self.drawing, self.last_endpoint, new_endpoint, (1.0, 1.0, 1.0), LINE_WIDTH)

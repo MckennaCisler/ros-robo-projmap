@@ -35,8 +35,8 @@ class ProjectorNode:
         self.proj_y = rospy.get_param('~proj_y', DEFAULT_PROJ_Y_RES)
         self.monitor = rospy.get_param('~monitor', DEFAULT_MONITOR)
 
-        self.sub_image = rospy.Subscriber("/projector/image", Image, self.rgb_frame_cb) # ~image
-        self.sub_depth = rospy.Subscriber("/movo_camera/hd/image_depth_rect", Image, self.depth_frame_cb) # /depth
+        self.sub_image = rospy.Subscriber("~image", Image, self.rgb_frame_cb)
+        self.sub_depth = rospy.Subscriber("~depth", Image, self.depth_frame_cb)
 
     def rgb_frame_cb(self, msg):
         if not self.started:

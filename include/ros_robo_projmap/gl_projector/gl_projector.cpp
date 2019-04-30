@@ -153,6 +153,7 @@ PyObject *start(PyObject *self, PyObject *args) {
 
     glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_RESIZABLE,GL_FALSE);
+    glfwWindowHint(GLFW_AUTO_ICONIFY, GLFW_FALSE); // keep up when it loses focus
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE); // To make MacOS happy; should not be needed
@@ -365,10 +366,10 @@ PyObject *draw_frame(PyObject *self, PyObject *args) {
 int check_for_exit() {
     // Check for exit keypresses
     glfwPollEvents();
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS) {
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE ) != GLFW_PRESS && glfwWindowShouldClose(window) == 0) {
 		return 0;
 	} else {
-        	return 1;
+        return 1;
 	}
 }
 
