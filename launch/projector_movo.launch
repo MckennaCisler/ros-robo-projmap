@@ -1,0 +1,13 @@
+<launch>
+
+    <!-- The projector node which will receive RGB and depth and project -->
+    <node name="projector" pkg="ros_robo_projmap" type="projector_node.py" output="screen">
+        <remap from="/projector/depth" to="/movo_camera/hd/image_depth_rect"/>
+
+        <param name="monitor" type="int" value="1" />
+        <param name="flip_x" type="bool" value="True" />
+        <param name="flip_y" type="bool" value="True" />
+        <param name="calib_file" type="string" value="$(find ros_robo_projmap)/calibrations/one_matrix.json" />
+    </node>
+
+</launch>

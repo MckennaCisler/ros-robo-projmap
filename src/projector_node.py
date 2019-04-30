@@ -14,13 +14,12 @@ DEFAULT_IMG_X_RES =     1920
 DEFAULT_IMG_Y_RES =     1080
 DEFAULT_PROJ_X_RES =    1366
 DEFAULT_PROJ_Y_RES =    768
-DEFAULT_MONITOR =       -1
+DEFAULT_MONITOR =       1
 
 class ProjectorNode:
     def __init__(self):
-        self.sub_image = rospy.Subscriber("/projector/image", Image, self.rgb_frame_cb) # ~image
-        self.sub_depth = rospy.Subscriber("/kinect2/hd/image_depth_rect", Image, self.depth_frame_cb) # /depth
-
+        self.started = False
+        self.p = None
         self.latest_depth = None
 
         # load calibration from file
@@ -30,17 +29,20 @@ class ProjectorNode:
         # take settings from launch file params
         self.img_x_res = rospy.get_param('~img_x_res', DEFAULT_IMG_X_RES)
         self.img_y_res = rospy.get_param('~img_y_res', DEFAULT_IMG_Y_RES)
+        self.flip_x = rospy.get_param('~flip_x', False)
+        self.flip_y = rospy.get_param('~flip_y', False)
         self.proj_x = rospy.get_param('~proj_x', DEFAULT_PROJ_X_RES)
         self.proj_y = rospy.get_param('~proj_y', DEFAULT_PROJ_Y_RES)
         self.monitor = rospy.get_param('~monitor', DEFAULT_MONITOR)
 
-        self.started = False
-        self.p = None
+        self.sub_image = rospy.Subscriber("~image", Image, self.rgb_frame_cb)
+        self.sub_depth = rospy.Subscriber("~depth", Image, self.depth_frame_cb)
 
     def rgb_frame_cb(self, msg):
         if not self.started:
             self.p = Projector(self.mvp, x_res=self.img_x_res, y_res=self.img_y_res,
-                proj_x_res=self.proj_x, proj_y_res=self.proj_y, entire=False, monitor=self.monitor)
+                proj_x_res=self.proj_x, proj_y_res=self.proj_y, flip_x=self.flip_x, flip_y=self.flip_y,
+                entire=False, monitor=self.monitor)
             self.started = True
 
         assert msg.encoding == 'bgr8'

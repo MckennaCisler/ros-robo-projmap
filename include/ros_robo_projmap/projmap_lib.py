@@ -10,7 +10,8 @@ class ProjMapLib():
         self.input_topic = input_topic
         if input_cb is not None:
             self.sub = rospy.Subscriber(input_topic, Image, input_cb)
-        self.pub_output = rospy.Publisher(output_topic, Image, queue_size=5)
+        # use small queue to send most recent value
+        self.pub_output = rospy.Publisher(output_topic, Image, queue_size=1)
     
     def msg_to_image(self, msg):
         assert msg.encoding == 'bgr8'

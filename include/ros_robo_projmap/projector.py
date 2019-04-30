@@ -4,7 +4,11 @@ import time
 import matplotlib.pyplot as plt
 
 class Projector():
-    def __init__(self, calibration_matrix, x_res, y_res, proj_x_res=1366, proj_y_res=768, entire=False, monitor=-1):
+    def __init__(self, calibration_matrix, x_res, y_res, proj_x_res=1366, proj_y_res=768, 
+            flip_x=False, flip_y=False, entire=False, monitor=-1):
+        self.flip_x = flip_x
+        self.flip_y = flip_y
+
         inds = np.indices([y_res, x_res], dtype=np.float32).transpose([1, 2, 0])[..., ::-1]
 
         A = np.array([
@@ -32,24 +36,22 @@ class Projector():
             M = calibration_matrix
 
         M /= M[3, 3]
+        print("Using calibration matrix:")
         print(M)
         self.calibration_matrix = np.ascontiguousarray(M.astype(np.float32))
         gl_projector.start(self.calibration_matrix, inds, x_res, y_res, proj_x_res, proj_y_res, monitor)
 
     def draw_frame(self, rgb, depth):
-        # start = time.time()
         depth_f = depth.astype(np.float32)
         depth_f[depth_f == 0] = np.inf
         rgb_norm = rgb.astype(np.float32) / 255.0
-        # coords_time = time.time() - start
 
-        # start = time.time()
-        ret = gl_projector.draw_frame(depth_f, rgb_norm)
-        # draw_time = time.time() - start
+        if self.flip_x:
+            rgb_norm = rgb_norm[:,::-1]
+        if self.flip_y:
+            rgb_norm = rgb_norm[::-1]
 
-        # print(coords_time, draw_time)
-
-        return ret
+        return gl_projector.draw_frame(depth_f, rgb_norm)
 
     def stop(self):
         gl_projector.stop()
