@@ -37,13 +37,22 @@ def dehomogenize(coords):
 
 
 ######################### LOAD GOOD CORRESPONDANCES #####################
-bad_inds = [15, 26, 27, 33, 36, 39, 42, 45, 51, 53, 54]
-print(58 - len(bad_inds))
+bad_inds = [0, 10, 11, 13, 14]
 corres = pickle.load(open('data.pickle', 'rb'))
 cam_locs, proj_locs = corres['cam locs'], corres['proj_locs']
 want = np.ones((cam_locs.shape[0]), dtype=bool)
 want[bad_inds] = False
 cam_locs, proj_locs = cam_locs[want], proj_locs[want]
+
+bad_inds2 = [3, 4, 5, 6, 8]
+corres2 = pickle.load(open('../ims_backup2/data.pickle', 'rb'))
+cam_locs2, proj_locs2 = corres2['cam locs'], corres2['proj_locs']
+want2 = np.ones((cam_locs2.shape[0]), dtype=bool)
+want2[bad_inds2] = False
+cam_locs2, proj_locs2 = cam_locs2[want], proj_locs2[want]
+
+cam_locs = np.concatenate([cam_locs, cam_locs2], 0)
+proj_locs = np.concatenate([proj_locs, proj_locs2], 0)
 
 
 ###################### SOLVE AFFINE TRANSFORMATION MATRIX ###############
