@@ -25,7 +25,7 @@ class ProjTrackedDrawNode:
 
         # projector input/output setup
         self.latest_img = None
-        self.proj = ProjMapLib(input_cb=self.receive_image, input_topic="/movo_camera/hd/image_color")
+        self.proj = ProjMapLib(input_cb=self.receive_image, input_topic="/image")
 
         # draw window setup
         self.tk, self.frame = drawlib.setup_draw(self.x_res, self.y_res, 
@@ -53,16 +53,19 @@ class ProjTrackedDrawNode:
             if self.latest_img is not None:
                 # combined = self.drawing * 255 + (1 - self.drawing) * self.latest_img
 
+                self.drawing *= 0
+
                 ok, bbox = self.tracker.update(self.latest_img)
                 if ok:
                     p1 = (int(bbox[0]), int(bbox[1]))
                     p2 = (int(bbox[0] + bbox[2]), int(bbox[1] + bbox[3]))
-                    cv2.rectangle(self.drawing, p1, p2, (255,0,0), cv2.FILLED, 1)
+                    cv2.rectangle(self.drawing, p1, p2, (0, 0, 255), cv2.FILLED, 1)
                 else:
                     print("Tracking failure")
 
+
                 drawlib.draw_frame(self.drawing, self.tk, self.frame)
-                self.proj.project_image(255*self.drawing)
+                self.proj.project_image(self.drawing)
 
             self.r.sleep()
 

@@ -22,3 +22,9 @@ cd include/ros_robo_projmap/gl_projector/
 ```
 
 # Usage
+## Using compressed image streams
+For compressed depth (from a movo): 
+`rosrun image_transport republish compressed in:=/movo_camera/hd/image_depth_rect out:=/projector/depth`
+
+For compressed kinect images (from a movo): 
+`rosrun image_transport republish compressed in:=/movo_camera/hd/image_color out:=/image`

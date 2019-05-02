@@ -19,7 +19,7 @@ class ProjDrawNode:
         self.y_res = rospy.get_param('~img_y_res', DEFAULT_IMG_Y_RES)
 
         self.proj = ProjMapLib(input_cb=self.receive_image, 
-            input_topic="/movo_camera/hd/image_color")
+            input_topic="/image")
         self.latest_img = np.zeros([self.y_res, self.x_res, 3])
 
         self.drawing = None
